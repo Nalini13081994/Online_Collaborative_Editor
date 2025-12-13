@@ -1,0 +1,49 @@
+
+<div class="editor-wrapper">
+  <div class="editor-header">
+    <div class="header-left">
+      <h1>🚀 Collaborative AI Code Editor</h1>
+      <span class="room-id">Room: {{roomName}}</span>
+    </div>
+    
+    <div class="header-center">
+      <select 
+        class="language-selector" 
+        [(ngModel)]="targetLanguage" 
+        (change)="handleLanguageChange()">
+       <option value="python">Python</option>
+    <option value="javascript">JavaScript</option>
+    <option value="java">Java</option>
+      </select>
+    </div>
+    
+    <div class="header-right">
+      <div class="status-indicator"
+      [class.connected] = "isConnected"
+        [class.disconnected] = "!isConnected"
+      >
+        <span class="status-dot"
+        ></span>
+        <span>{{isConnected? 'Connected': 'Disconnected'}}</span>
+      </div>
+      
+      <div class="user-count">
+        <span class="user-icon">👥</span>
+        <span>{{activeUsersCount}} active</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-content">
+    <div #editor class="codemirror-container"></div>
+  </div>
+
+  <div class="info-bar">
+    <div class="info-item">
+      <span>💡 Press <kbd>Ctrl+Space</kbd> for AI completions</span>
+    </div>
+    <div class="info-item">
+      <span>User:{{userId}} </span>
+    </div>
+  </div>
+</div>

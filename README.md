@@ -82,4 +82,5 @@ OnLINE_EdITOR_WITH_AI/
 ## How to stop the  Application
 
 Backend: Press Ctrl+C in the backend terminal
+
 Frontend: Press Ctrl+C in the frontend terminal

@@ -76,7 +76,7 @@ OnLINE_EdITOR_WITH_AI/
 ### Key Features
 - Real time Collaborative editing
 - Code Conversion using Generative AI
-- Auto Completion Suggestion using Code Mirror
+- Code Completion Suggestions Using AI
 - Multiple users can code together
 
 ## How to stop the  Application

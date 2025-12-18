@@ -7,6 +7,10 @@ interface ConversionResponse {
   convertedCode: string;
 }
 
+interface autoCompleteResponse{
+  auto_suggestions: string;
+}
+
 @Injectable({
   // 'root' makes the service available throughout the application
   providedIn: 'root'
@@ -14,6 +18,7 @@ interface ConversionResponse {
 export class ConverterService {
   // *** UPDATE THIS URL to your actual conversion backend endpoint ***
   private apiUrl = 'http://localhost:5000/convert'; 
+  private autoCompleteUrl = 'http://localhost:5000/api/autocomplete'
 
   constructor(private http: HttpClient) { }
 
@@ -32,5 +37,16 @@ export class ConverterService {
     };
     
     return this.http.post<ConversionResponse>(this.apiUrl, payload);
+  }
+
+  getAutoComplete(sourceCode: string, targetLanguage: string): Observable<ConversionResponse>
+  {
+    console.log(".    "+sourceCode+"   "+targetLanguage)
+    const payload = {
+      code: sourceCode,
+      target: targetLanguage
+    };
+    
+    return this.http.post<ConversionResponse>(this.autoCompleteUrl, payload);
   }
 }

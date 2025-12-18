@@ -1,18 +1,18 @@
 import { createRequire } from 'module';const require = createRequire(import.meta.url);
 import {
   withHttpTransferCache
-} from "./chunk-UUXSV34K.js";
+} from "./chunk-CA25JPNQ.js";
 import {
   CommonModule,
   PLATFORM_BROWSER_ID
-} from "./chunk-7V2T2QRH.js";
+} from "./chunk-VTHNUKNU.js";
 import {
   DomAdapter,
   XhrFactory,
   getDOM,
   parseCookieValue,
   setRootDomAdapter
-} from "./chunk-JSB4JG3G.js";
+} from "./chunk-KBM6AKPO.js";
 import {
   APP_ID,
   ApplicationModule,
@@ -72,7 +72,7 @@ import {
   ɵɵdefineInjector,
   ɵɵdefineNgModule,
   ɵɵinject
-} from "./chunk-QP2GJSAT.js";
+} from "./chunk-FKHAQBF2.js";
 import {
   __spreadProps,
   __spreadValues
@@ -1752,4 +1752,4 @@ export {
   provideClientHydration,
   VERSION
 };
-//# sourceMappingURL=chunk-JWYTRZCD.js.map
+//# sourceMappingURL=chunk-VVNETRUX.js.map

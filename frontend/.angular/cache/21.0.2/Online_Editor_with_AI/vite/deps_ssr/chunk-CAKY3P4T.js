@@ -1,7 +1,7 @@
 import { createRequire } from 'module';const require = createRequire(import.meta.url);
 import {
   Title
-} from "./chunk-JWYTRZCD.js";
+} from "./chunk-VVNETRUX.js";
 import {
   HashLocationStrategy,
   Location,
@@ -10,10 +10,10 @@ import {
   PathLocationStrategy,
   PlatformNavigation,
   ViewportScroller
-} from "./chunk-7V2T2QRH.js";
+} from "./chunk-VTHNUKNU.js";
 import {
   LOCATION_INITIALIZED
-} from "./chunk-JSB4JG3G.js";
+} from "./chunk-KBM6AKPO.js";
 import {
   APP_BOOTSTRAP_LISTENER,
   ApplicationRef,
@@ -64,7 +64,6 @@ import {
   provideEnvironmentInitializer,
   publishExternalGlobalUtil,
   reflectComponentType,
-  require_cjs,
   require_operators,
   runInInjectionContext,
   setClassMetadata,
@@ -88,7 +87,10 @@ import {
   ɵɵloadQuery,
   ɵɵqueryRefresh,
   ɵɵsanitizeUrlOrResourceUrl
-} from "./chunk-QP2GJSAT.js";
+} from "./chunk-FKHAQBF2.js";
+import {
+  require_cjs
+} from "./chunk-O5J3CNTX.js";
 import {
   __spreadProps,
   __spreadValues,
@@ -5928,4 +5930,4 @@ export {
   mapToResolve,
   VERSION
 };
-//# sourceMappingURL=chunk-37ATAYQ4.js.map
+//# sourceMappingURL=chunk-CAKY3P4T.js.map

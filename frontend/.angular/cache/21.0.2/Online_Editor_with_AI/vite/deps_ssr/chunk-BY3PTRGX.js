@@ -32,10 +32,6 @@ import {
   combineConfig,
   fromCodePoint
 } from "./chunk-EENJNCGS.js";
-import {
-  __spreadProps,
-  __spreadValues
-} from "./chunk-6DU2HRTW.js";
 
 // node_modules/@codemirror/autocomplete/dist/index.js
 var CompletionContext = class {
@@ -175,18 +171,14 @@ function ensureAnchor(expr, start) {
 var pickedCompletion = Annotation.define();
 function insertCompletionText(state, text, from, to) {
   let { main } = state.selection, fromOff = from - main.from, toOff = to - main.from;
-  return __spreadProps(__spreadValues({}, state.changeByRange((range) => {
+  return Object.assign(Object.assign({}, state.changeByRange((range) => {
     if (range != main && from != to && state.sliceDoc(range.from + fromOff, range.from + toOff) != state.sliceDoc(from, to))
       return { range };
-    let lines = state.toText(text);
     return {
-      changes: { from: range.from + fromOff, to: to == main.from ? range.to : range.from + toOff, insert: lines },
-      range: EditorSelection.cursor(range.from + fromOff + lines.length)
+      changes: { from: range.from + fromOff, to: to == main.from ? range.to : range.from + toOff, insert: text },
+      range: EditorSelection.cursor(range.from + fromOff + text.length)
     };
-  })), {
-    scrollIntoView: true,
-    userEvent: "input.complete"
-  });
+  })), { scrollIntoView: true, userEvent: "input.complete" });
 }
 var SourceCache = /* @__PURE__ */ new WeakMap();
 function asSource(source) {
@@ -353,7 +345,7 @@ var completionConfig = Facet.define({
       addToOptions: [],
       positionInfo: defaultPositionInfo,
       filterStrict: false,
-      compareCompletions: (a, b) => (a.sortText || a.label).localeCompare(b.sortText || b.label),
+      compareCompletions: (a, b) => a.label.localeCompare(b.label),
       interactionDelay: 75,
       updateSyncTime: 100
     }, {
@@ -554,8 +546,7 @@ var CompletionTooltip = class {
       this.range = rangeAroundSelected(open.options.length, open.selected, this.view.state.facet(completionConfig).maxRenderedOptions);
       this.showOptions(open.options, cState.id);
     }
-    let newSel = this.updateSelectedOption(open.selected);
-    if (newSel) {
+    if (this.updateSelectedOption(open.selected)) {
       this.destroyInfo();
       let { completion } = open.options[open.selected];
       let { info } = completion;
@@ -571,7 +562,6 @@ var CompletionTooltip = class {
         }).catch((e) => logException(this.view.state, e, "completion info"));
       } else {
         this.addInfoPane(infoResult, completion);
-        newSel.setAttribute("aria-describedby", this.info.id);
       }
     }
   }
@@ -579,7 +569,6 @@ var CompletionTooltip = class {
     this.destroyInfo();
     let wrap = this.info = document.createElement("div");
     wrap.className = "cm-tooltip cm-completionInfo";
-    wrap.id = "cm-completionInfo-" + Math.floor(Math.random() * 65535).toString(16);
     if (content.nodeType != null) {
       wrap.appendChild(content);
       this.infoDestroy = null;
@@ -602,10 +591,8 @@ var CompletionTooltip = class {
           set = opt;
         }
       } else {
-        if (opt.hasAttribute("aria-selected")) {
+        if (opt.hasAttribute("aria-selected"))
           opt.removeAttribute("aria-selected");
-          opt.removeAttribute("aria-describedby");
-        }
       }
     }
     if (set)
@@ -621,8 +608,8 @@ var CompletionTooltip = class {
     let selRect = sel.getBoundingClientRect();
     let space = this.space;
     if (!space) {
-      let docElt = this.dom.ownerDocument.documentElement;
-      space = { left: 0, top: 0, right: docElt.clientWidth, bottom: docElt.clientHeight };
+      let win = this.dom.ownerDocument.defaultView || window;
+      space = { left: 0, top: 0, right: win.innerWidth, bottom: win.innerHeight };
     }
     if (selRect.top > Math.min(space.bottom, listRect.bottom) - 10 || selRect.bottom < Math.max(space.top, listRect.top) + 10)
       return null;
@@ -645,10 +632,6 @@ var CompletionTooltip = class {
     ul.setAttribute("role", "listbox");
     ul.setAttribute("aria-expanded", "true");
     ul.setAttribute("aria-label", this.view.state.phrase("Completions"));
-    ul.addEventListener("mousedown", (e) => {
-      if (e.target == ul)
-        e.preventDefault();
-    });
     let curSection = null;
     for (let i = range.from; i < range.to; i++) {
       let { completion, match } = options[i], { section } = completion;
@@ -711,7 +694,7 @@ function score(option) {
 }
 function sortOptions(active, state) {
   let options = [];
-  let sections = null, dynamicSectionScore = null;
+  let sections = null;
   let addOption = (option) => {
     options.push(option);
     let { section } = option.completion;
@@ -737,21 +720,15 @@ function sortOptions(active, state) {
         for (let option of a.result.options)
           if (match = matcher.match(option.label)) {
             let matched = !option.displayLabel ? match.matched : getMatch ? getMatch(option, match.matched) : [];
-            let score2 = match.score + (option.boost || 0);
-            addOption(new Option(option, a.source, matched, score2));
-            if (typeof option.section == "object" && option.section.rank === "dynamic") {
-              let { name } = option.section;
-              if (!dynamicSectionScore)
-                dynamicSectionScore = /* @__PURE__ */ Object.create(null);
-              dynamicSectionScore[name] = Math.max(score2, dynamicSectionScore[name] || -1e9);
-            }
+            addOption(new Option(option, a.source, matched, match.score + (option.boost || 0)));
           }
       }
     }
   if (sections) {
     let sectionOrder = /* @__PURE__ */ Object.create(null), pos = 0;
     let cmp = (a, b) => {
-      return (a.rank === "dynamic" && b.rank === "dynamic" ? dynamicSectionScore[b.name] - dynamicSectionScore[a.name] : 0) || (typeof a.rank == "number" ? a.rank : 1e9) - (typeof b.rank == "number" ? b.rank : 1e9) || (a.name < b.name ? -1 : 1);
+      var _a, _b;
+      return ((_a = a.rank) !== null && _a !== void 0 ? _a : 1e9) - ((_b = b.rank) !== null && _b !== void 0 ? _b : 1e9) || (a.name < b.name ? -1 : 1);
     };
     for (let s of sections.sort(cmp)) {
       pos -= 1e5;
@@ -787,12 +764,14 @@ var CompletionDialog = class _CompletionDialog {
   setSelected(selected, id) {
     return selected == this.selected || selected >= this.options.length ? this : new _CompletionDialog(this.options, makeAttrs(id, selected), this.tooltip, this.timestamp, selected, this.disabled);
   }
-  static build(active, state, id, prev, conf, didSetActive) {
-    if (prev && !didSetActive && active.some((s) => s.isPending))
-      return prev.setDisabled();
+  static build(active, state, id, prev, conf) {
     let options = sortOptions(active, state);
-    if (!options.length)
-      return prev && active.some((a) => a.isPending) ? prev.setDisabled() : null;
+    if (!options.length) {
+      return prev && active.some(
+        (a) => a.state == 1
+        /* State.Pending */
+      ) ? new _CompletionDialog(prev.options, prev.attrs, prev.tooltip, prev.timestamp, prev.selected, true) : null;
+    }
     let selected = state.facet(completionConfig).selectOnOpen ? 0 : -1;
     if (prev && prev.selected != selected && prev.selected != -1) {
       let selectedValue = prev.options[prev.selected].completion;
@@ -809,10 +788,7 @@ var CompletionDialog = class _CompletionDialog {
     }, prev ? prev.timestamp : Date.now(), selected, false);
   }
   map(changes) {
-    return new _CompletionDialog(this.options, this.attrs, __spreadProps(__spreadValues({}, this.tooltip), { pos: changes.mapPos(this.tooltip.pos) }), this.timestamp, this.selected, this.disabled);
-  }
-  setDisabled() {
-    return new _CompletionDialog(this.options, this.attrs, this.tooltip, this.timestamp, this.selected, true);
+    return new _CompletionDialog(this.options, this.attrs, Object.assign(Object.assign({}, this.tooltip), { pos: changes.mapPos(this.tooltip.pos) }), this.timestamp, this.selected, this.disabled);
   }
 };
 var CompletionState = class _CompletionState {
@@ -840,14 +816,20 @@ var CompletionState = class _CompletionState {
     });
     if (active.length == this.active.length && active.every((a, i) => a == this.active[i]))
       active = this.active;
-    let open = this.open, didSet = tr.effects.some((e) => e.is(setActiveEffect));
+    let open = this.open;
     if (open && tr.docChanged)
       open = open.map(tr.changes);
-    if (tr.selection || active.some((a) => a.hasResult() && tr.changes.touchesRange(a.from, a.to)) || !sameResults(active, this.active) || didSet)
-      open = CompletionDialog.build(active, state, this.id, open, conf, didSet);
-    else if (open && open.disabled && !active.some((a) => a.isPending))
+    if (tr.selection || active.some((a) => a.hasResult() && tr.changes.touchesRange(a.from, a.to)) || !sameResults(active, this.active))
+      open = CompletionDialog.build(active, state, this.id, open, conf);
+    else if (open && open.disabled && !active.some(
+      (a) => a.state == 1
+      /* State.Pending */
+    ))
       open = null;
-    if (!open && active.every((a) => !a.isPending) && active.some((a) => a.hasResult()))
+    if (!open && active.every(
+      (a) => a.state != 1
+      /* State.Pending */
+    ) && active.some((a) => a.hasResult()))
       active = active.map((a) => a.hasResult() ? new ActiveSource(
         a.source,
         0
@@ -869,9 +851,9 @@ function sameResults(a, b) {
   if (a == b)
     return true;
   for (let iA = 0, iB = 0; ; ) {
-    while (iA < a.length && !a[iA].hasResult())
+    while (iA < a.length && !a[iA].hasResult)
       iA++;
-    while (iB < b.length && !b[iB].hasResult())
+    while (iB < b.length && !b[iB].hasResult)
       iB++;
     let endA = iA == a.length, endB = iB == b.length;
     if (endA || endB)
@@ -905,16 +887,13 @@ function getUpdateType(tr, conf) {
   return typing && conf.activateOnTyping ? 4 | 1 : typing ? 1 : tr.isUserEvent("delete.backward") ? 2 : tr.selection ? 8 : tr.docChanged ? 16 : 0;
 }
 var ActiveSource = class _ActiveSource {
-  constructor(source, state, explicit = false) {
+  constructor(source, state, explicitPos = -1) {
     this.source = source;
     this.state = state;
-    this.explicit = explicit;
+    this.explicitPos = explicitPos;
   }
   hasResult() {
     return false;
-  }
-  get isPending() {
-    return this.state == 1;
   }
   update(tr, conf) {
     let type = getUpdateType(tr, conf), value = this;
@@ -933,7 +912,7 @@ var ActiveSource = class _ActiveSource {
     value = value.updateFor(tr, type);
     for (let effect of tr.effects) {
       if (effect.is(startCompletionEffect))
-        value = new _ActiveSource(value.source, 1, effect.value);
+        value = new _ActiveSource(value.source, 1, effect.value ? cur(tr.state) : -1);
       else if (effect.is(closeCompletionEffect))
         value = new _ActiveSource(
           value.source,
@@ -952,16 +931,15 @@ var ActiveSource = class _ActiveSource {
     return this.map(tr.changes);
   }
   map(changes) {
-    return this;
+    return changes.empty || this.explicitPos < 0 ? this : new _ActiveSource(this.source, this.state, changes.mapPos(this.explicitPos));
   }
   touches(tr) {
     return tr.changes.touchesRange(cur(tr.state));
   }
 };
 var ActiveResult = class _ActiveResult extends ActiveSource {
-  constructor(source, explicit, limit, result, from, to) {
-    super(source, 3, explicit);
-    this.limit = limit;
+  constructor(source, explicitPos, result, from, to) {
+    super(source, 2, explicitPos);
     this.result = result;
     this.from = from;
     this.to = to;
@@ -978,18 +956,18 @@ var ActiveResult = class _ActiveResult extends ActiveSource {
       result = result.map(result, tr.changes);
     let from = tr.changes.mapPos(this.from), to = tr.changes.mapPos(this.to, 1);
     let pos = cur(tr.state);
-    if (pos > to || !result || type & 2 && (cur(tr.startState) == this.from || pos < this.limit))
+    if ((this.explicitPos < 0 ? pos <= from : pos < this.from) || pos > to || !result || type & 2 && cur(tr.startState) == this.from)
       return new ActiveSource(
         this.source,
         type & 4 ? 1 : 0
         /* State.Inactive */
       );
-    let limit = tr.changes.mapPos(this.limit);
+    let explicitPos = this.explicitPos < 0 ? -1 : tr.changes.mapPos(this.explicitPos);
     if (checkValid(result.validFor, tr.state, from, to))
-      return new _ActiveResult(this.source, this.explicit, limit, result, from, to);
-    if (result.update && (result = result.update(result, from, to, new CompletionContext(tr.state, pos, false))))
-      return new _ActiveResult(this.source, this.explicit, limit, result, result.from, (_a = result.to) !== null && _a !== void 0 ? _a : cur(tr.state));
-    return new ActiveSource(this.source, 1, this.explicit);
+      return new _ActiveResult(this.source, explicitPos, result, from, to);
+    if (result.update && (result = result.update(result, from, to, new CompletionContext(tr.state, pos, explicitPos >= 0))))
+      return new _ActiveResult(this.source, explicitPos, result, result.from, (_a = result.to) !== null && _a !== void 0 ? _a : cur(tr.state));
+    return new ActiveSource(this.source, 1, explicitPos);
   }
   map(mapping) {
     if (mapping.empty)
@@ -1001,7 +979,7 @@ var ActiveResult = class _ActiveResult extends ActiveSource {
         0
         /* State.Inactive */
       );
-    return new _ActiveResult(this.source, this.explicit, mapping.mapPos(this.limit), this.result, mapping.mapPos(this.from), mapping.mapPos(this.to, 1));
+    return new _ActiveResult(this.source, this.explicitPos < 0 ? -1 : mapping.mapPos(this.explicitPos), this.result, mapping.mapPos(this.from), mapping.mapPos(this.to, 1));
   }
   touches(tr) {
     return tr.changes.touchesRange(this.from, this.to);
@@ -1037,9 +1015,7 @@ function applyCompletion(view, option) {
   if (!(result instanceof ActiveResult))
     return false;
   if (typeof apply == "string")
-    view.dispatch(__spreadProps(__spreadValues({}, insertCompletionText(view.state, apply, result.from, result.to)), {
-      annotations: pickedCompletion.of(option.completion)
-    }));
+    view.dispatch(Object.assign(Object.assign({}, insertCompletionText(view.state, apply, result.from, result.to)), { annotations: pickedCompletion.of(option.completion) }));
   else
     apply(view, option.completion, result.from, result.to);
   return true;
@@ -1106,7 +1082,7 @@ var completionPlugin = ViewPlugin.fromClass(class {
     this.pendingStart = false;
     this.composing = 0;
     for (let active of view.state.field(completionState).active)
-      if (active.isPending)
+      if (active.state == 1)
         this.startQuery(active);
   }
   update(update) {
@@ -1139,7 +1115,7 @@ var completionPlugin = ViewPlugin.fromClass(class {
     if (update.transactions.some((tr) => tr.effects.some((e) => e.is(startCompletionEffect))))
       this.pendingStart = true;
     let delay = this.pendingStart ? 50 : conf.activateOnTypingDelay;
-    this.debounceUpdate = cState.active.some((a) => a.isPending && !this.running.some((q) => q.active.source == a.source)) ? setTimeout(() => this.startUpdate(), delay) : -1;
+    this.debounceUpdate = cState.active.some((a) => a.state == 1 && !this.running.some((q) => q.active.source == a.source)) ? setTimeout(() => this.startUpdate(), delay) : -1;
     if (this.composing != 0)
       for (let tr of update.transactions) {
         if (tr.isUserEvent("input.type"))
@@ -1153,15 +1129,13 @@ var completionPlugin = ViewPlugin.fromClass(class {
     this.pendingStart = false;
     let { state } = this.view, cState = state.field(completionState);
     for (let active of cState.active) {
-      if (active.isPending && !this.running.some((r) => r.active.source == active.source))
+      if (active.state == 1 && !this.running.some((r) => r.active.source == active.source))
         this.startQuery(active);
     }
-    if (this.running.length && cState.open && cState.open.disabled)
-      this.debounceAccept = setTimeout(() => this.accept(), this.view.state.facet(completionConfig).updateSyncTime);
   }
   startQuery(active) {
     let { state } = this.view, pos = cur(state);
-    let context = new CompletionContext(state, pos, active.explicit, this.view);
+    let context = new CompletionContext(state, pos, active.explicitPos == pos, this.view);
     let pending = new RunningQuery(active, context);
     this.running.push(pending);
     Promise.resolve(active.source(context)).then((result) => {
@@ -1188,16 +1162,14 @@ var completionPlugin = ViewPlugin.fromClass(class {
       clearTimeout(this.debounceAccept);
     this.debounceAccept = -1;
     let updated = [];
-    let conf = this.view.state.facet(completionConfig), cState = this.view.state.field(completionState);
+    let conf = this.view.state.facet(completionConfig);
     for (let i = 0; i < this.running.length; i++) {
       let query = this.running[i];
       if (query.done === void 0)
         continue;
       this.running.splice(i--, 1);
       if (query.done) {
-        let pos = cur(query.updates.length ? query.updates[0].startState : this.view.state);
-        let limit = Math.min(pos, query.done.from + (query.active.explicit ? 0 : 1));
-        let active = new ActiveResult(query.active.source, query.active.explicit, limit, query.done, query.done.from, (_a = query.done.to) !== null && _a !== void 0 ? _a : pos);
+        let active = new ActiveResult(query.active.source, query.active.explicitPos, query.done, query.done.from, (_a = query.done.to) !== null && _a !== void 0 ? _a : cur(query.updates.length ? query.updates[0].startState : this.view.state));
         for (let tr of query.updates)
           active = active.update(tr, conf);
         if (active.hasResult()) {
@@ -1205,8 +1177,8 @@ var completionPlugin = ViewPlugin.fromClass(class {
           continue;
         }
       }
-      let current = cState.active.find((a) => a.source == query.active.source);
-      if (current && current.isPending) {
+      let current = this.view.state.field(completionState).active.find((a) => a.source == query.active.source);
+      if (current && current.state == 1) {
         if (query.done == null) {
           let active = new ActiveSource(
             query.active.source,
@@ -1215,14 +1187,14 @@ var completionPlugin = ViewPlugin.fromClass(class {
           );
           for (let tr of query.updates)
             active = active.update(tr, conf);
-          if (!active.isPending)
+          if (active.state != 1)
             updated.push(active);
         } else {
           this.startQuery(current);
         }
       }
     }
-    if (updated.length || cState.open && cState.open.disabled)
+    if (updated.length)
       this.view.dispatch({ effects: setActiveEffect.of(updated) });
   }
 }, {
@@ -1430,7 +1402,7 @@ var Snippet = class _Snippet {
     let fields = [];
     let lines = [], positions = [], m;
     for (let line of template.split(/\r\n?|\n/)) {
-      while (m = /[#$]\{(?:(\d+)(?::([^{}]*))?|((?:\\[{}]|[^{}])*))\}/.exec(line)) {
+      while (m = /[#$]\{(?:(\d+)(?::([^}]*))?|((?:\\[{}]|[^}])*))\}/.exec(line)) {
         let seq = m[1] ? +m[1] : null, rawName = m[2] || m[3] || "", found = -1;
         let name = rawName.replace(/\\[{}]/g, (m2) => m2[1]);
         for (let i = 0; i < fields.length; i++) {
@@ -1447,12 +1419,6 @@ var Snippet = class _Snippet {
             if (pos.field >= found)
               pos.field++;
         }
-        for (let pos of positions)
-          if (pos.line == lines.length && pos.from > m.index) {
-            let snip = m[2] ? 3 + (m[1] || "").length : 2;
-            pos.from -= snip;
-            pos.to -= snip;
-          }
         positions.push(new FieldPos(found, lines.length, m.index, m.index + name.length));
         line = line.slice(0, m.index) + rawName + line.slice(m.index + m[0].length);
       }
@@ -1484,7 +1450,7 @@ var ActiveSnippet = class _ActiveSnippet {
   constructor(ranges, active) {
     this.ranges = ranges;
     this.active = active;
-    this.deco = Decoration.set(ranges.map((r) => (r.from == r.to ? fieldMarker : fieldRange).range(r.from, r.to)), true);
+    this.deco = Decoration.set(ranges.map((r) => (r.from == r.to ? fieldMarker : fieldRange).range(r.from, r.to)));
   }
   map(changes) {
     let ranges = [];
@@ -1532,9 +1498,8 @@ function snippet(template) {
   let snippet2 = Snippet.parse(template);
   return (editor, completion, from, to) => {
     let { text, ranges } = snippet2.instantiate(editor.state, from);
-    let { main } = editor.state.selection;
     let spec = {
-      changes: { from, to: to == main.from ? main.to : to, insert: Text.of(text) },
+      changes: { from, to, insert: Text.of(text) },
       scrollIntoView: true,
       annotations: completion ? [pickedCompletion.of(completion), Transaction.userEvent.of("input.complete")] : void 0
     };
@@ -1591,7 +1556,7 @@ var snippetKeymap = Facet.define({
 });
 var addSnippetKeymap = Prec.highest(keymap.compute([snippetKeymap], (state) => state.facet(snippetKeymap)));
 function snippetCompletion(template, completion) {
-  return __spreadProps(__spreadValues({}, completion), { apply: snippet(template) });
+  return Object.assign(Object.assign({}, completion), { apply: snippet(template) });
 }
 var snippetPointerHandler = EditorView.domEventHandlers({
   mousedown(event, view) {
@@ -1711,7 +1676,7 @@ var bracketState = StateField.define({
 function closeBrackets() {
   return [inputHandler, bracketState];
 }
-var definedClosing = "()[]{}<>«»»«［］｛｝";
+var definedClosing = "()[]{}<>";
 function closing(ch) {
   for (let i = 0; i < definedClosing.length; i += 2)
     if (definedClosing.charCodeAt(i) == ch)
@@ -1918,8 +1883,6 @@ function autocompletion(config2 = {}) {
 }
 var completionKeymap = [
   { key: "Ctrl-Space", run: startCompletion },
-  { mac: "Alt-`", run: startCompletion },
-  { mac: "Alt-i", run: startCompletion },
   { key: "Escape", run: closeCompletion },
   { key: "ArrowDown", run: moveCompletionSelection(true) },
   { key: "ArrowUp", run: moveCompletionSelection(false) },
@@ -1930,7 +1893,10 @@ var completionKeymap = [
 var completionKeymapExt = Prec.highest(keymap.computeN([completionConfig], (state) => state.facet(completionConfig).defaultKeymap ? [completionKeymap] : []));
 function completionStatus(state) {
   let cState = state.field(completionState, false);
-  return cState && cState.active.some((a) => a.isPending) ? "pending" : cState && cState.active.some(
+  return cState && cState.active.some(
+    (a) => a.state == 1
+    /* State.Pending */
+  ) ? "pending" : cState && cState.active.some(
     (a) => a.state != 0
     /* State.Inactive */
   ) ? "active" : null;
@@ -1992,4 +1958,4 @@ export {
   selectedCompletionIndex,
   setSelectedCompletion
 };
-//# sourceMappingURL=chunk-7EI556BB.js.map
+//# sourceMappingURL=chunk-BY3PTRGX.js.map

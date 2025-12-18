@@ -29,7 +29,7 @@ import {
   snippetCompletion,
   snippetKeymap,
   startCompletion
-} from "./chunk-OAE6EFRU.js";
+} from "./chunk-QLV2VWBF.js";
 import "./chunk-HAQBUZPN.js";
 import "./chunk-XTSB5VJQ.js";
 import "./chunk-47GYHVDB.js";

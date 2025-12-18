@@ -1,13 +1,13 @@
 import {
-  completeFromList,
-  ifNotIn,
-  snippetCompletion
-} from "./chunk-OAE6EFRU.js";
-import {
   ContextTracker,
   ExternalTokenizer,
   LRParser
 } from "./chunk-DQFYPYH2.js";
+import {
+  completeFromList,
+  ifNotIn,
+  snippetCompletion
+} from "./chunk-QLV2VWBF.js";
 import {
   IterMode,
   LRLanguage,

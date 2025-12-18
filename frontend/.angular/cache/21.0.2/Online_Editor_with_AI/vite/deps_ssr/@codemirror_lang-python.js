@@ -1,14 +1,14 @@
 import { createRequire } from 'module';const require = createRequire(import.meta.url);
 import {
+  completeFromList,
+  ifNotIn,
+  snippetCompletion
+} from "./chunk-BY3PTRGX.js";
+import {
   ContextTracker,
   ExternalTokenizer,
   LRParser
 } from "./chunk-KIDFNM6D.js";
-import {
-  completeFromList,
-  ifNotIn,
-  snippetCompletion
-} from "./chunk-7EI556BB.js";
 import {
   IterMode,
   LRLanguage,

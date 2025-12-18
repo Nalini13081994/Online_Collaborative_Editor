@@ -11,6 +11,8 @@ app.use(express.json());
 const convertRoute = require("./routes/convert");
 app.use("/api/convert", convertRoute);
 
+const autocompleteRoute = require("./routes/autocomplete")
+app.use("/api/autocomplete", autocompleteRoute)
 
 
 

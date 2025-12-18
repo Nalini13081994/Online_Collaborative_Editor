@@ -11,13 +11,14 @@ import { python } from '@codemirror/lang-python';
 import { javascript } from '@codemirror/lang-javascript';
 import { EditorState, Extension, StateEffect } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-import { autocompletion, CompletionContext, completionKeymap} from '@codemirror/autocomplete';
+import { autocompletion, CompletionContext, completionKeymap, startCompletion} from '@codemirror/autocomplete';
 
 //* Collaboration Imports **/
 import * as Y from 'yjs';
 import { yCollab } from 'y-codemirror.next';
 import { WebsocketProvider } from 'y-websocket'
 import { ChangeDetectorRef } from '@angular/core';
+import { lastValueFrom } from 'rxjs';
 
 
 
@@ -127,7 +128,7 @@ createAutoCompletion(): Extension
   console.log("auto complete...")
 return  autocompletion({
   override: [this.languageSpecificCompletions.bind(this)],
-  activateOnTyping: true
+  activateOnTyping: false
 });
 
 }
@@ -204,7 +205,17 @@ this.initDone = true;
         this.cdr.detectChanges();
         
     });
-
+const myKeymap = keymap.of([
+  {
+    key: "Ctrl-Space",
+    run: (view) => {
+      console.log("Ctrl + Space pressed");
+      console.log("key evenuy auto complete")
+      startCompletion(this.editor)
+      return true; // prevents default handling
+    }
+  }
+]);
     // 5. Create the EditorState and EditorView
     const state = EditorState.create({
       // Use ytext content for initial state
@@ -212,10 +223,11 @@ this.initDone = true;
       extensions: [
         EditorView.lineWrapping,
         this.getThemeExtension(), 
+         myKeymap,
         this.getLanguageExtension(this.targetLanguage),
         this.createAutoCompletion(),
         lineNumbers(),
-        keymap.of(completionKeymap),
+       
         
         // ** COLLABORATION EXTENSION: Links Y.Text to CodeMirror **
         yCollab(this.ytext, this.provider.awareness),
@@ -223,7 +235,7 @@ this.initDone = true;
         
         EditorView.updateListener.of((v) => {
           if (v.docChanged) {
-            console.log("Updated:", v.state.doc.toString());
+            //console.log("Updated:", v.state.doc.toString());
           }
         })
       ]
@@ -289,54 +301,77 @@ getThemeExtension(): Extension {
             pointerEvents: 'none',
             opacity: '0.9'
         }
-        // ***************************
+        
     });
 }
-  languageSpecificCompletions(context: CompletionContext) {
+  async languageSpecificCompletions(context: CompletionContext) {
+   
     console.log("called language specific completion.    ")
     const word = context.matchBefore(/\w*/);
     if (!word) return null;
 
     let options: any[] = [];
+    const codeBefore = context.state.sliceDoc(0, context.pos);
+    console.log("code before...."+codeBefore+".   "+this.targetLanguage)
 
-    // ===== JavaScript =====
-    if (this.targetLanguage === "javascript") {
-      options = [
-        { label: "console.log", type: "function", info: "Print to console" },
-        { label: "function", type: "keyword" },
+    try {
+      console.log("try block")
+      // Use lastValueFrom to wait for the backend response
+      const res = await lastValueFrom(this.converter.getAutoComplete(
+        context.state.sliceDoc(0, context.pos), 
+        this.targetLanguage
+      ));
+      
+      
+
+  
+      const clean_response = res.auto_suggestions.replace(/```json|```/g, "").trim();
+
+          
+const suggestions = JSON.parse(clean_response)
+console.log("values from json.... .   "+suggestions)
+
+options = suggestions.map((item: string) => ({
+    label: item,
+    displayLabel: item
+}));
+      
+      console.log("options array...."+options)
+
+     
+
+
+    }
+    catch(err)
+    {
+      console.log("Gemini auto complete failed"+err)
+options = [
+     { label: "console.log", type: "function", info: "Print to console" },
+      { label: "function", type: "keyword" },
         { label: "let", type: "keyword" },
         { label: "const", type: "keyword" },
-        { label: "return", type: "keyword" },
-      ];
-    }
-
-    // ===== Python =====
-    else if (this.targetLanguage === "python") {
-      options = [
-        { label: "print", type: "function", info: "Print to console" },
-        { label: "def", type: "keyword" },
-        { label: "class", type: "keyword" },
-        { label: "import", type: "keyword" },
-        { label: "return", type: "keyword" }
-      ];
-    }
-    // ===== Java =====
-    else if (this.targetLanguage === "java") {
-      options = [
-        { label: "System.out.println", type: "function" },
+      { label: "return", type: "keyword" },
+      { label: "System.out.println", type: "function" },
         { label: "public", type: "keyword" },
-        { label: "class", type: "keyword" },
+       { label: "class", type: "keyword" },
         { label: "static", type: "keyword" },
         { label: "void", type: "keyword" },
-        { label: "return", type: "keyword" }
+       { label: "return", type: "keyword" }
       ];
     }
 
     return {
-      from: word.from,
-      options
-    };
+           from: word.from,
+           options: options
+       };
+
+
   }
+
+  
+
+ 
+ 
     
  // Method to update the language mode in CodeMirror
 changeLanguage(lang: string): void {
@@ -399,49 +434,49 @@ convert(source_code: string) {
 
   console.log(source_code.toString+".  "+this.targetLanguage)
 
-    if (source_code) {
-        // Call the service to convert the code
-        console.log(source_code.toString+".  "+this.targetLanguage)
-        this.converter.convertCode(source_code, this.targetLanguage)
-          .subscribe({
-            next:(res) => 
-            {
+    // if (source_code) {
+    //     // Call the service to convert the code
+    //     console.log(source_code.toString+".  "+this.targetLanguage)
+    //    // this.converter.convertCode(source_code, this.targetLanguage)
+    //       .subscribe({
+    //         next:(res) => 
+    //         {
 
-              this.ydoc.transact(() => {
-                    this.ytext.delete(0, this.ytext.length);
-                    this.ytext.insert(0, res.convertedCode);
-              });
-            }
+    //           this.ydoc.transact(() => {
+    //                 this.ytext.delete(0, this.ytext.length);
+    //                 this.ytext.insert(0, res.convertedCode);
+    //           });
+    //         }
               
-            //this.updateEditorState(res.convertedCode)
+    //         //this.updateEditorState(res.convertedCode)
             
             
-            ,
-    //         next: (res) => this.editor.dispatch(
+    //         ,
+    // //         next: (res) => this.editor.dispatch(
+    // //           {
+    // //             changes: {
+    // //   from: 0,
+    // //   to: this.editor.state.doc.length,
+    // //   insert: this.cleanMarkdown(res.convertedCode)
+    // // }
+    // //           }
+    // //         ),
+    //         error: (err) => 
     //           {
-    //             changes: {
-    //   from: 0,
-    //   to: this.editor.state.doc.length,
-    //   insert: this.cleanMarkdown(res.convertedCode)
-    // }
-    //           }
-    //         ),
-            error: (err) => 
-              {
-                console.error('Conversion failed', err)
-                //showRateLimitDialog("Rate Limit Reached")
-                //this.updateEditorState(this.default_code)
+    //             console.error('Conversion failed', err)
+    //             //showRateLimitDialog("Rate Limit Reached")
+    //             //this.updateEditorState(this.default_code)
                 this.ydoc.transact(() => {
                     this.ytext.delete(0, this.ytext.length);
                     this.ytext.insert(0, getDefaultCode(this.targetLanguage));
-              });
-              }
-          });
-    } else {
-        // Clear converted code if source is empty
-        this.convertedCode = ' '; 
-        //this.updateEditorState(this.default_code)
-    }
+            });
+          //     }
+          // });
+    // } else {
+    //     // Clear converted code if source is empty
+    //     this.convertedCode = ' '; 
+    //     //this.updateEditorState(this.default_code)
+    // }
 }
   
 

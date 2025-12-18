@@ -30,7 +30,7 @@ import {
   snippetCompletion,
   snippetKeymap,
   startCompletion
-} from "./chunk-7EI556BB.js";
+} from "./chunk-BY3PTRGX.js";
 import "./chunk-AH2ZA2KL.js";
 import "./chunk-DDRNT7WC.js";
 import "./chunk-EENJNCGS.js";
